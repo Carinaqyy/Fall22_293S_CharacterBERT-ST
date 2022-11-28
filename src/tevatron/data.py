@@ -73,6 +73,49 @@ class FixWordSwapQWERTY(WordSwapQWERTY):
 
         return candidate_words
 
+class FixWordSwapQWERTY_Edit2(WordSwapQWERTY):
+    def _get_replacement_words(self, word):
+        if len(word) <= 1:
+            return []
+
+        candidate_words = []
+
+        start_idx = 1 if self.skip_first_char else 0
+        end_idx = len(word) - (1 + self.skip_last_char)
+
+        if start_idx >= end_idx:
+            return []
+
+        if self.random_one:
+            i = random.randrange(start_idx, end_idx + 1)
+            if len(self._get_adjacent(word[i])) == 0:
+                candidate_word = (
+                    word[:i] + random.choice(list(self._keyboard_adjacency.keys())) + word[i + 1:]
+                )
+            else:
+                candidate_word = (
+                    word[:i] + random.choice(self._get_adjacent(word[i])) + word[i + 1:]
+                )
+
+            j = random.randrange(start_idx, end_idx + 1)
+            while i == j:
+                j = random.randrange(start_idx, end_idx + 1)
+            if len(self._get_adjacent(word[i])) == 0:
+                new_candidate_word = (
+                    candidate_word[:j] + random.choice(list(self._keyboard_adjacency.keys())) + candidate_word[j + 1:]
+                )
+            else:
+                new_candidate_word = (
+                    candidate_word[:j] + random.choice(self._get_adjacent(word[j])) + candidate_word[j + 1:]
+                )
+            candidate_words.append(new_candidate_word)
+        else:
+            for i in range(start_idx, end_idx + 1):
+                for swap_key in self._get_adjacent(word[i]):
+                    candidate_word = word[:i] + swap_key + word[i + 1 :]
+                    candidate_words.append(candidate_word)
+
+        return candidate_words
 
 class TrainDataset(Dataset):
     def __init__(
@@ -106,7 +149,7 @@ class TrainDataset(Dataset):
                 WordSwapNeighboringCharacterSwap(),
                 WordSwapRandomCharacterInsertion(),
                 WordSwapRandomCharacterSubstitution(),
-                FixWordSwapQWERTY(),
+                FixWordSwapQWERTY_Edit2(),
             ])
             constraints = [MinWordLength(3), StopwordModification(STOPWORDS)]
             self.augmenter = Augmenter(transformation=transformation, constraints=constraints, pct_words_to_swap=0)
@@ -424,3 +467,8 @@ class EncodeCharacterCollator(DataCollatorWithPadding):
             maxlen=self.max_length
         )
         return text_ids, collated_features
+
+if __name__ == "__main__":
+    typo_class = FixWordSwapQWERTY_Edit2()
+    candidate_words = typo_class._get_replacement_words("apple")
+    print(candidate_words)
