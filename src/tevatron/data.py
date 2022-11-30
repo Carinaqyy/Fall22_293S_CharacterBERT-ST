@@ -1,4 +1,5 @@
 import random
+import string
 random.seed(313)
 from dataclasses import dataclass
 from typing import Union, List
@@ -17,6 +18,7 @@ from .modeling import CharacterIndexer
 
 from .arguments import DataArguments
 from .trainer import DenseTrainer
+import numpy as np
 
 import logging
 logger = logging.getLogger(__name__)
@@ -114,6 +116,134 @@ class FixWordSwapQWERTY_Edit2(WordSwapQWERTY):
                 for swap_key in self._get_adjacent(word[i]):
                     candidate_word = word[:i] + swap_key + word[i + 1 :]
                     candidate_words.append(candidate_word)
+
+        return candidate_words
+
+
+class WordSwapRandomCharacterInsertion_Edit2(WordSwapRandomCharacterInsertion):
+    def _get_random_letter(self):
+        """Helper function that returns a random single letter from the English
+        alphabet that could be lowercase or uppercase."""
+        s = random.choice(string.ascii_letters)
+        print(s)
+        return s
+
+    def _get_replacement_words(self, word):
+        """Returns returns a list containing all possible words with 1 random
+        character inserted."""
+        if len(word) <= 1:
+            return []
+
+        candidate_words = []
+
+        start_idx = 1 if self.skip_first_char else 0
+        end_idx = (len(word) - 1) if self.skip_last_char else len(word)
+
+        if start_idx >= end_idx:
+            return []
+
+        if self.random_one:
+            i = np.random.randint(start_idx, end_idx)
+            candidate_word = word[:i] + self._get_random_letter() + word[i:]
+            # candidate_words.append(candidate_word)
+
+            # Change Edit Distance
+            j = np.random.randint(start_idx, end_idx+1)
+            while i == j:
+                j = np.random.randint(start_idx, end_idx+1)
+            new_candidate_word = candidate_word[:j] + self._get_random_letter() + candidate_word[j:]
+            candidate_words.append(new_candidate_word)
+        else:
+            for i in range(start_idx, end_idx):
+                candidate_word = word[:i] + self._get_random_letter() + word[i:]
+                candidate_words.append(candidate_word)
+
+        return candidate_words
+
+class WordSwapRandomCharacterDeletion_Edit2(WordSwapRandomCharacterDeletion):
+    def _get_replacement_words(self, word):
+        """Returns returns a list containing all possible words with 1 letter
+        deleted."""
+        if len(word) <= 1:
+            return []
+
+        candidate_words = []
+
+        start_idx = 1 if self.skip_first_char else 0
+        end_idx = (len(word) - 1) if self.skip_last_char else len(word)
+
+        if start_idx >= end_idx:
+            return []
+
+        if self.random_one:
+            i = np.random.randint(start_idx, end_idx)
+            candidate_word = word[:i] + word[i + 1 :]
+            # candidate_words.append(candidate_word)
+
+            j = np.random.randint(start_idx, end_idx-1)
+            new_candidate_word = candidate_word[:j] + candidate_word[j+1:]
+            candidate_words.append(new_candidate_word)
+        else:
+            for i in range(start_idx, end_idx):
+                candidate_word = word[:i] + word[i + 1 :]
+                candidate_words.append(candidate_word)
+
+        return candidate_words
+
+class WordSwapRandomCharacterSubstitution_Edit2(WordSwapRandomCharacterSubstitution):
+    def _get_replacement_words(self, word):
+        """Returns returns a list containing all possible words with 1 letter
+        substituted for a random letter."""
+        if len(word) <= 1:
+            return []
+
+        candidate_words = []
+
+        if self.random_one:
+            i = np.random.randint(0, len(word))
+            new_candidate_word = word[:i] + self._get_random_letter() + word[i + 1 :]
+            # candidate_words.append(candidate_word)
+            j = np.random.randint(0, len(new_candidate_word))
+            while i == j:
+                j = np.random.randint(0, len(new_candidate_word))
+            candidate_word = new_candidate_word[:j] + self._get_random_letter() + new_candidate_word[j+1:]
+            candidate_words.append(candidate_word)
+        else:
+            for i in range(len(word)):
+                candidate_word = word[:i] + self._get_random_letter() + word[i + 1 :]
+                candidate_words.append(candidate_word)
+
+        return candidate_words
+
+class WordSwapNeighboringCharacterSwap_Edit2(WordSwapNeighboringCharacterSwap):
+    def _get_replacement_words(self, word):
+        """Returns a list containing all possible words with 1 pair of
+        neighboring characters swapped."""
+
+        if len(word) <= 1:
+            return []
+
+        candidate_words = []
+
+        start_idx = 1 if self.skip_first_char else 0
+        end_idx = (len(word) - 2) if self.skip_last_char else (len(word) - 1)
+
+        if start_idx >= end_idx:
+            return []
+
+        if self.random_one:
+            i = np.random.randint(start_idx, end_idx)
+            candidate_word = word[:i] + word[i + 1] + word[i] + word[i + 2 :]
+            # candidate_words.append(candidate_word)
+            j = np.random.randint(start_idx, end_idx)
+            while i == j:
+                j = np.random.randint(start_idx, end_idx)
+            new_candidate_word = candidate_word[:j] + candidate_word[j + 1] + candidate_word[j] + candidate_word[j + 2: ]
+            candidate_words.append(new_candidate_word)
+        else:
+            for i in range(start_idx, end_idx):
+                candidate_word = word[:i] + word[i + 1] + word[i] + word[i + 2 :]
+                candidate_words.append(candidate_word)
 
         return candidate_words
 
@@ -305,7 +435,6 @@ class EncodeDataset(Dataset):
             )
         return text_id, encoded_text
 
-
 @dataclass
 class QPCollator(DataCollatorWithPadding):
     """
@@ -468,7 +597,7 @@ class EncodeCharacterCollator(DataCollatorWithPadding):
         )
         return text_ids, collated_features
 
-if __name__ == "__main__":
-    typo_class = FixWordSwapQWERTY_Edit2()
-    candidate_words = typo_class._get_replacement_words("apple")
-    print(candidate_words)
+# if __name__ == "__main__":
+#     typo_class = WordSwapRandomCharacterInsertion_Edit2()
+#     candidate_words = typo_class._get_replacement_words("base")
+#     print(candidate_words)
