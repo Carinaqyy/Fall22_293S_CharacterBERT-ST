@@ -100,13 +100,13 @@ class FixWordSwapQWERTY_Edit2(WordSwapQWERTY):
             j = random.randrange(start_idx, end_idx + 1)
             while i == j:
                 j = random.randrange(start_idx, end_idx + 1)
-            if len(self._get_adjacent(word[i])) == 0:
+            if len(self._get_adjacent(candidate_word[j])) == 0:
                 new_candidate_word = (
                     candidate_word[:j] + random.choice(list(self._keyboard_adjacency.keys())) + candidate_word[j + 1:]
                 )
             else:
                 new_candidate_word = (
-                    candidate_word[:j] + random.choice(self._get_adjacent(word[j])) + candidate_word[j + 1:]
+                    candidate_word[:j] + random.choice(self._get_adjacent(candidate_word[j])) + candidate_word[j + 1:]
                 )
             candidate_words.append(new_candidate_word)
         else:
