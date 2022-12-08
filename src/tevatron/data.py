@@ -125,7 +125,6 @@ class WordSwapRandomCharacterInsertion_Edit2(WordSwapRandomCharacterInsertion):
         """Helper function that returns a random single letter from the English
         alphabet that could be lowercase or uppercase."""
         s = random.choice(string.ascii_letters)
-        print(s)
         return s
 
     def _get_replacement_words(self, word):
